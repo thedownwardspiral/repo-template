@@ -34,7 +34,7 @@ Private repos on a personal account cannot use CodeQL, dependency review or GitH
 ## After creating a repo
 
 - **Dependencies:** add an entry for each package manager to `.github/dependabot.yml`. Commit lockfiles: OSV-Scanner checks only the versions written in the repo.
-- **CodeQL:** detects Python, JavaScript/TypeScript, Ruby, Java/Kotlin and C#. Languages that need a build step (Go, C/C++, Swift) must be added to the `codeql` job by hand.
+- **CodeQL:** detects Python, JavaScript/TypeScript, Ruby, Java/Kotlin and C#. Languages that need a build step (Go, C/C++, Swift) must be added to the `codeql` job by hand. Detection reads GitHub's language stats for the default branch, so a PR that introduces a language is scanned for it only after it merges.
 - **Secrets:** `pre-commit install` scans each commit locally with gitleaks before it is created. For a private repo this is the only check that runs before a secret reaches GitHub.
 
 ## Pinning
