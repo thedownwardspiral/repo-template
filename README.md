@@ -13,7 +13,7 @@ pre-commit install
 
 Use `--private` instead of `--public` for a private repo. The workflows detect visibility on their own.
 
-`setup-repo.sh` turns on Dependabot alerts and security updates, turns on secret scanning, push protection and private vulnerability reporting (public repos only), and applies the "Protect main" ruleset. The ruleset requires a PR to change `main`, blocks force pushes and deletion, and requires the security checks to pass. It needs no approvals, so a sole maintainer can still merge.
+`setup-repo.sh` turns on Dependabot alerts and security updates, turns on secret scanning, push protection and private vulnerability reporting (public repos only), and applies the "Protect main" ruleset. The ruleset requires a PR to change `main`, blocks force pushes and deletion, requires the security checks to pass, and requires every review thread to be resolved. It needs no approvals, so a sole maintainer can still merge. Draft PRs cannot be merged until marked ready for review; GitHub enforces that on its own.
 
 ## What runs
 
