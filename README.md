@@ -13,7 +13,9 @@ pre-commit install
 
 Use `--private` instead of `--public` for a private repo. The workflows detect visibility on their own.
 
-`setup-repo.sh` turns on Dependabot alerts and security updates, turns on secret scanning, push protection and private vulnerability reporting (public repos only), and applies the "Protect main" ruleset. The ruleset requires a PR to change `main`, blocks force pushes and deletion, requires the security checks to pass, and requires every review thread to be resolved. It needs no approvals, so a sole maintainer can still merge. Draft PRs cannot be merged until marked ready for review; GitHub enforces that on its own.
+`setup-repo.sh` turns on Dependabot alerts and security updates, turns on secret scanning, push protection and private vulnerability reporting (public repos only), and applies the "Protect main" ruleset. The ruleset requires a PR to change `main`, blocks force pushes and deletion, requires the security checks to pass and the PR branch to be up to date with `main`, and requires every review thread to be resolved. The script turns on the "Update branch" button (`allow_update_branch`), so catching up is one click. History stays linear and every commit must be signed, so the script leaves squash as the only merge method: merge commits break linear history and GitHub cannot sign a rebase merge. Commits made in the GitHub web UI are signed automatically; local commits need [SSH or GPG signing](https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification) set up. The ruleset needs no approvals, so a sole maintainer can still merge. Draft PRs cannot be merged until marked ready for review; GitHub enforces that on its own.
+
+`setup-repo.sh` also locks down GitHub Actions. `GITHUB_TOKEN` is read-only by default and workflows cannot approve PRs. Only GitHub-owned actions and the allowlisted gitleaks and zizmor actions may run, so a new third-party action fails until it is added to `patterns_allowed` in the script. On public repos, fork PR workflows from every outside contributor wait for a maintainer's approval; if GitHub refuses that setting, the script prints a warning and you set it under Settings → Actions → General.
 
 ## What runs
 
@@ -21,6 +23,7 @@ Use `--private` instead of `--public` for a private repo. The workflows detect v
 
 | Job | Public repo | Private repo | Checks |
 | --- | --- | --- | --- |
+| `zizmor` | runs | runs | Workflow files: injection, excessive permissions and other Actions pitfalls |
 | `gitleaks` | runs | runs | Secrets in commits; full history on the weekly run |
 | `dependency-review` | runs (PRs) | skipped | PRs that add vulnerable dependencies |
 | `codeql` | runs | skipped | Static analysis; languages are detected automatically |
@@ -29,12 +32,13 @@ Use `--private` instead of `--public` for a private repo. The workflows detect v
 
 Private repos on a personal account cannot use CodeQL, dependency review or GitHub secret scanning, so Semgrep CE and OSV-Scanner stand in for them. A skipped job counts as passing, so one ruleset works for both.
 
-`zizmor.yml` lints the workflow files whenever `.github/` changes.
+`zizmor` runs on every PR, not only when `.github/` changes, because a required check that never reports blocks the merge.
 
 ## After creating a repo
 
 - **Dependencies:** add an entry for each package manager to `.github/dependabot.yml`. Commit lockfiles: OSV-Scanner checks only the versions written in the repo.
 - **CodeQL:** detects Python, JavaScript/TypeScript, Ruby, Java/Kotlin and C#. Languages that need a build step (Go, C/C++, Swift) must be added to the `codeql` job by hand. Detection reads GitHub's language stats for the default branch, so a PR that introduces a language is scanned for it only after it merges.
+- **Default branch:** the ruleset protects the default branch whatever its name (`~DEFAULT_BRANCH`), but the `on: push: branches: [main]` trigger in `security.yml` is hardcoded. If the default branch is not `main`, edit that trigger.
 - **Secrets:** `pre-commit install` scans each commit locally with gitleaks before it is created. For a private repo this is the only check that runs before a secret reaches GitHub.
 
 ## Pinning

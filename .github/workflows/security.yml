@@ -3,7 +3,8 @@
 # Public repos get GitHub's own tools (CodeQL, dependency review), which are
 # free there. Private repos on a personal account cannot use those at any
 # price, so they get open-source replacements instead: Semgrep CE for static
-# analysis and OSV-Scanner for vulnerable dependencies. gitleaks runs on both.
+# analysis and OSV-Scanner for vulnerable dependencies. gitleaks, and zizmor
+# for linting these workflows, run on both.
 #
 # Every job reports on every PR, so the "Protect main" ruleset can require all
 # of them: a job skipped for the other visibility counts as passing.
@@ -21,7 +22,8 @@ permissions: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel only PR runs: pushes to main share a group with the weekly full-history scan.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Scheduled runs carry no repository payload, so read visibility and
@@ -55,6 +57,25 @@ jobs:
           echo "private=$private" >> "$GITHUB_OUTPUT"
           echo "codeql-languages=$languages" >> "$GITHUB_OUTPUT"
           echo "private=$private, CodeQL languages: $languages"
+
+  # Lints the workflows for injection, excessive permissions and other GitHub
+  # Actions pitfalls. Runs on every event with no path filter: a required
+  # check that never reports blocks the PR.
+  zizmor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # advanced-security: false makes findings fail the check instead of only
+      # landing in the Security tab, which private repos do not have.
+      - uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          advanced-security: false
 
   gitleaks:
     runs-on: ubuntu-latest
